@@ -22,15 +22,25 @@ class ScheduledRepaymentFactory extends Factory
      */
     public function definition(): array
     {
-        $amount = $this->faker->numberBetween(1000, 5000);
+        $amount = 1666;
 
         return [
-            'loan_id' => fn () => Loan::factory()->create()->id,
+            'loan_id' => null,
             'amount' => $amount,
             'outstanding_amount' => $amount,
-            'currency_code' => $this->faker->randomElement([Loan::CURRENCY_SGD, Loan::CURRENCY_VND]),
+            'currency_code' => Loan::CURRENCY_VND,
             'due_date' => $this->faker->dateTimeBetween('now', '+6 months'),
             'status' => ScheduledRepayment::STATUS_DUE,
         ];
+    }
+
+    public function forLoan(Loan $loan)
+    {
+        return $this->state(function (array $attributes) use ($loan) {
+            return [
+                'loan_id' => $loan->id,
+                'currency_code' => $loan->currency_code,
+            ];
+        });
     }
 }

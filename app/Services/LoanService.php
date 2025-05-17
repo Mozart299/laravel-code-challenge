@@ -23,7 +23,6 @@ class LoanService
      */
     public function createLoan(User $user, int $amount, string $currencyCode, int $terms, string $processedAt): Loan
     {
-        // Create the loan
         $loan = Loan::create([
             'user_id' => $user->id,
             'amount' => $amount,
@@ -34,24 +33,19 @@ class LoanService
             'status' => Loan::STATUS_DUE
         ]);
 
-        // Calculate the amount per term
         $amountPerTerm = (int) ($amount / $terms);
-        $remainder = $amount % $terms;
+        $remainder = $amount - ($amountPerTerm * $terms);
 
-        // Create scheduled repayments
         $processedDate = Carbon::parse($processedAt);
 
         for ($i = 0; $i < $terms; $i++) {
             $repaymentAmount = $amountPerTerm;
-            // Add remainder to the last repayment
             if ($i === $terms - 1) {
                 $repaymentAmount += $remainder;
             }
 
-            // Calculate due date (one month after processed date)
             $dueDate = (clone $processedDate)->addMonths($i + 1);
 
-            // Create scheduled repayment
             ScheduledRepayment::create([
                 'loan_id' => $loan->id,
                 'amount' => $repaymentAmount,
@@ -77,7 +71,7 @@ class LoanService
      */
     public function repayLoan(Loan $loan, int $amount, string $currencyCode, string $receivedAt): ReceivedRepayment
     {
-        // Create the received repayment record
+  
         $receivedRepayment = ReceivedRepayment::create([
             'loan_id' => $loan->id,
             'amount' => $amount,
@@ -85,23 +79,14 @@ class LoanService
             'received_at' => $receivedAt
         ]);
 
-        // Get the scheduled repayments that are due or partially paid
+ 
         $scheduledRepayments = $loan->scheduledRepayments()
             ->whereIn('status', [ScheduledRepayment::STATUS_DUE, ScheduledRepayment::STATUS_PARTIAL])
             ->orderBy('due_date')
             ->get();
 
-        // Create the received repayment record
-        $receivedRepayment = ReceivedRepayment::create([
-            'loan_id' => $loan->id,
-            'amount' => $amount,
-            'currency_code' => $currencyCode,
-            'received_at' => $receivedAt
-        ]);
-
         $remainingAmount = $amount;
 
-        // Apply the payment to each scheduled repayment
         foreach ($scheduledRepayments as $repayment) {
             if ($remainingAmount <= 0) {
                 break;
@@ -109,7 +94,6 @@ class LoanService
 
             $outstandingAmount = $repayment->outstanding_amount;
 
-            // If we can fully pay this repayment
             if ($remainingAmount >= $outstandingAmount) {
                 $repayment->outstanding_amount = 0;
                 $repayment->status = ScheduledRepayment::STATUS_REPAID;
@@ -117,7 +101,6 @@ class LoanService
 
                 $remainingAmount -= $outstandingAmount;
             } else {
-                // Partial payment
                 $repayment->outstanding_amount = $outstandingAmount - $remainingAmount;
                 $repayment->status = ScheduledRepayment::STATUS_PARTIAL;
                 $repayment->save();
@@ -126,15 +109,10 @@ class LoanService
             }
         }
 
-        // Let's directly calculate the loan's outstanding amount
-// instead of relying on database queries
-// IMPORTANT: This assumes the test is set up with repayments that sum to the full loan amount
         $loanOutstandingAmount = $loan->scheduledRepayments()->sum('outstanding_amount');
 
-        // Determine the loan status based on whether there's any outstanding amount
         $loanStatus = $loanOutstandingAmount <= 0 ? Loan::STATUS_REPAID : Loan::STATUS_DUE;
 
-        // Update the loan
         $loan->outstanding_amount = $loanOutstandingAmount;
         $loan->status = $loanStatus;
         $loan->save();

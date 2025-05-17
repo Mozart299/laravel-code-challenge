@@ -22,16 +22,15 @@ class LoanFactory extends Factory
      */
     public function definition(): array
     {
-        // TODO: Complete factory
-        $amount = $this->faker->numberBetween(1000, 10000);
+        $amount = 5000; 
 
         return [
-            'user_id' => fn () => User::factory()->create()->id,
+            'user_id' => fn() => User::factory()->create()->id,
             'amount' => $amount,
-            'terms' => $this->faker->randomElement([3, 6]),
-            'outstanding_amount' => $amount, 
-            'currency_code' => $this->faker->randomElement([Loan::CURRENCY_SGD, Loan::CURRENCY_VND]),
-            'processed_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
+            'terms' => 3,
+            'outstanding_amount' => $amount,
+            'currency_code' => Loan::CURRENCY_VND,
+            'processed_at' => '2020-01-20 00:00:00',
             'status' => Loan::STATUS_DUE,
         ];
     }

@@ -40,6 +40,15 @@ class Loan extends Model
     ];
 
     /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'processed_at' => 'datetime',
+    ];
+
+    /**
      * A Loan belongs to a User
      *
      * @return BelongsTo
@@ -57,5 +66,15 @@ class Loan extends Model
     public function scheduledRepayments()
     {
         return $this->hasMany(ScheduledRepayment::class, 'loan_id');
+    }
+
+    /**
+     * A Loan has many Received Repayments
+     *
+     * @return HasMany
+     */
+    public function receivedRepayments()
+    {
+        return $this->hasMany(ReceivedRepayment::class, 'loan_id');
     }
 }
