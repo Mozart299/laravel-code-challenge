@@ -18,7 +18,7 @@ class CreateReceivedRepaymentsTable extends Migration
             $table->unsignedInteger('loan_id');
 
             // TODO: Add missing columns here
-
+            $table->unsignedInteger('scheduled_repayment_id')->nullable();
             $table->integer('amount');
             $table->string('currency_code');
             $table->date('received_at');
@@ -29,6 +29,12 @@ class CreateReceivedRepaymentsTable extends Migration
             $table->foreign('loan_id')
                 ->references('id')
                 ->on('loans')
+                ->onUpdate('cascade')
+                ->onDelete('restrict');
+
+            $table->foreign('scheduled_repayment_id')
+                ->references('id')
+                ->on('scheduled_repayments')
                 ->onUpdate('cascade')
                 ->onDelete('restrict');
         });

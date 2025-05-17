@@ -24,6 +24,7 @@ class ReceivedRepayment extends Model
      */
     protected $fillable = [
         'loan_id',
+        'scheduled_repayment_id',
         'amount',
         'currency_code',
         'received_at'
@@ -35,7 +36,7 @@ class ReceivedRepayment extends Model
      * @var array
      */
     protected $casts = [
-        'received_at' => 'date',
+        'received_at' => 'datetime',
     ];
 
     /**
@@ -46,5 +47,15 @@ class ReceivedRepayment extends Model
     public function loan()
     {
         return $this->belongsTo(Loan::class, 'loan_id');
+    }
+
+      /**
+     * A Received Repayment belongs to a Scheduled Repayment
+     *
+     * @return BelongsTo
+     */
+    public function scheduledRepayment()
+    {
+        return $this->belongsTo(ScheduledRepayment::class, 'scheduled_repayment_id');
     }
 }
