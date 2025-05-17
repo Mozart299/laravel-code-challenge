@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Loan;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\User;
 
 class LoanFactory extends Factory
 {
@@ -21,8 +22,16 @@ class LoanFactory extends Factory
      */
     public function definition(): array
     {
+        $amount = 5000; 
+
         return [
-            // TODO: Complete factory
+            'user_id' => fn() => User::factory()->create()->id,
+            'amount' => $amount,
+            'terms' => 3,
+            'outstanding_amount' => $amount,
+            'currency_code' => Loan::CURRENCY_VND,
+            'processed_at' => '2020-01-20 00:00:00',
+            'status' => Loan::STATUS_DUE,
         ];
     }
 }
