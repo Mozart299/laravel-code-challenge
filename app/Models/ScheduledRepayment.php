@@ -27,8 +27,32 @@ class ScheduledRepayment extends Model
      * @var array
      */
     protected $fillable = [
-        //
+        'loan_id',
+        'amount',
+        'outstanding_amount',
+        'currency_code',
+        'due_date',
+        'status'
     ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'due_date' => 'date',
+    ];
+
+    /**
+     * Get the scheduled repayments for a loan
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function receivedRepayments()
+    {
+        return $this->hasMany(ReceivedRepayment::class, 'scheduled_repayment_id');
+    }
 
     /**
      * A Scheduled Repayment belongs to a Loan

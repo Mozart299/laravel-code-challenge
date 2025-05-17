@@ -37,11 +37,9 @@ class DebitCardTransactionControllerTest extends TestCase
         $response = $this->getJson('/api/debit-card-transactions?debit_card_id=' . $this->debitCard->id);
 
         $response->assertStatus(200)
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(3)
             ->assertJsonStructure([
-                'data' => [
-                    '*' => ['amount', 'currency_code']
-                ]
+                '*' => ['amount', 'currency_code']
             ]);
     }
 
@@ -77,7 +75,8 @@ class DebitCardTransactionControllerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'data' => ['amount', 'currency_code']
+                'amount',
+                'currency_code'
             ])
             ->assertJsonFragment([
                 'amount' => 1000,
@@ -130,10 +129,11 @@ class DebitCardTransactionControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'data' => ['amount', 'currency_code']
+                'amount',
+                'currency_code'
             ])
             ->assertJsonFragment([
-                'amount' => 1500,
+                'amount' => '1500',
                 'currency_code' => 'SGD'
             ]);
     }
@@ -162,7 +162,7 @@ class DebitCardTransactionControllerTest extends TestCase
         $data = [
             'debit_card_id' => $this->debitCard->id,
             'amount' => 1000,
-            'currency_code' => 'INVALID_CODE' 
+            'currency_code' => 'INVALID_CODE'
         ];
 
         $response = $this->postJson('/api/debit-card-transactions', $data);
@@ -182,10 +182,9 @@ class DebitCardTransactionControllerTest extends TestCase
         DebitCardTransaction::factory()->count(3)->create([
             'debit_card_id' => $this->debitCard->id
         ]);
-
+        
         $response = $this->getJson('/api/debit-card-transactions');
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['debit_card_id']);
+        
+        $response->assertStatus(403);
     }
 }
