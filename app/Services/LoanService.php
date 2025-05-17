@@ -34,8 +34,8 @@ class LoanService
             'status' => Loan::STATUS_DUE
         ]);
 
-        // Calculate the amount per term (distributing any remainder to the last term)
-        $amountPerTerm = intval($amount / $terms);
+        // Calculate the amount per term
+        $amountPerTerm = (int) ($amount / $terms);
         $remainder = $amount % $terms;
 
         // Create scheduled repayments
@@ -43,16 +43,15 @@ class LoanService
 
         for ($i = 0; $i < $terms; $i++) {
             $repaymentAmount = $amountPerTerm;
-
-            // Add remainder to the last term
-            if ($i == $terms - 1) {
+            // Add remainder to the last repayment
+            if ($i === $terms - 1) {
                 $repaymentAmount += $remainder;
             }
 
-            // Calculate due date (one month after the previous date)
+            // Calculate due date (one month after processed date)
             $dueDate = (clone $processedDate)->addMonths($i + 1)->format('Y-m-d');
 
-            // Create the scheduled repayment
+            // Create scheduled repayment
             ScheduledRepayment::create([
                 'loan_id' => $loan->id,
                 'amount' => $repaymentAmount,
@@ -78,7 +77,7 @@ class LoanService
      */
     public function repayLoan(Loan $loan, int $amount, string $currencyCode, string $receivedAt): ReceivedRepayment
     {
-        // Create the received repayment
+        // Create the received repayment record
         $receivedRepayment = ReceivedRepayment::create([
             'loan_id' => $loan->id,
             'amount' => $amount,
@@ -86,51 +85,48 @@ class LoanService
             'received_at' => $receivedAt
         ]);
 
-        // Get all due or partial scheduled repayments
-        $dueRepayments = $loan->scheduledRepayments()
+        // Get the scheduled repayments that are due or partially paid
+        $scheduledRepayments = $loan->scheduledRepayments()
             ->whereIn('status', [ScheduledRepayment::STATUS_DUE, ScheduledRepayment::STATUS_PARTIAL])
             ->orderBy('due_date')
             ->get();
 
         $remainingAmount = $amount;
 
-        // Process each due repayment
-        foreach ($dueRepayments as $scheduledRepayment) {
+        // Apply the payment to each scheduled repayment
+        foreach ($scheduledRepayments as $repayment) {
             if ($remainingAmount <= 0) {
                 break;
             }
 
-            $outstandingAmount = $scheduledRepayment->outstanding_amount;
+            $outstandingAmount = $repayment->outstanding_amount;
 
-            // If remaining amount covers the full outstanding amount
+            // If we can fully pay this repayment
             if ($remainingAmount >= $outstandingAmount) {
-                $scheduledRepayment->update([
+                $repayment->update([
                     'outstanding_amount' => 0,
                     'status' => ScheduledRepayment::STATUS_REPAID
                 ]);
-
                 $remainingAmount -= $outstandingAmount;
-            }
-            // If remaining amount covers part of the outstanding amount
-            else {
-                $newOutstandingAmount = $outstandingAmount - $remainingAmount;
-
-                $scheduledRepayment->update([
-                    'outstanding_amount' => $newOutstandingAmount,
+            } else {
+                // Partial payment
+                $repayment->update([
+                    'outstanding_amount' => $outstandingAmount - $remainingAmount,
                     'status' => ScheduledRepayment::STATUS_PARTIAL
                 ]);
-
                 $remainingAmount = 0;
             }
         }
 
-        // Update loan outstanding amount and status
-        $totalOutstanding = $loan->scheduledRepayments()->sum('outstanding_amount');
-        $newStatus = $totalOutstanding > 0 ? Loan::STATUS_DUE : Loan::STATUS_REPAID;
-
+        // Update the loan's outstanding amount
+        $outstandingAmount = $loan->scheduledRepayments()->sum('outstanding_amount');
+        
+        // Update loan status
+        $loanStatus = $outstandingAmount > 0 ? Loan::STATUS_DUE : Loan::STATUS_REPAID;
+        
         $loan->update([
-            'outstanding_amount' => $totalOutstanding,
-            'status' => $newStatus
+            'outstanding_amount' => $outstandingAmount,
+            'status' => $loanStatus
         ]);
 
         return $receivedRepayment;
